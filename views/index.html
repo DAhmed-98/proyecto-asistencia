@@ -2,61 +2,247 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Control de Asistencia</title>
+  <title>Administración de Retardos</title>
   <style>
-    body { font-family: sans-serif; display: flex; gap: 24px; padding: 32px; }
-    .panel { border: 1px solid #ccc; padding: 20px; border-radius: 8px; min-width: 200px; }
-    table  { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
-    th     { background: #f5f5f5; }
-    button { margin-top: 8px; padding: 8px 16px; cursor: pointer; }
-    input  { width: 100%; padding: 6px; box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; }
+
+    /* ── LOGIN ─────────────────────────── */
+    #login-screen {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh;
+    }
+    .login-card {
+      background: #fff; padding: 32px; border-radius: 10px;
+      border: 1px solid #ddd; width: 320px;
+    }
+    .login-card h2 { font-size: 18px; margin-bottom: 20px; }
+    .login-card input {
+      width: 100%; padding: 8px 10px; margin-bottom: 12px;
+      border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
+    }
+    .login-card button {
+      width: 100%; padding: 10px; background: #2563eb; color: #fff;
+      border: none; border-radius: 6px; font-size: 14px; cursor: pointer;
+    }
+    .error-msg { color: #dc2626; font-size: 13px; margin-top: 8px; }
+
+    /* ── PANEL ADMIN ────────────────────── */
+    #admin-panel { display: none; padding: 24px; }
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .top-bar h1 { font-size: 20px; font-weight: 500; }
+    .top-bar button {
+      padding: 6px 14px; border: 1px solid #ccc; border-radius: 6px;
+      background: #fff; font-size: 13px; cursor: pointer;
+    }
+
+    .search-bar {
+      display: flex; gap: 10px; margin-bottom: 16px;
+    }
+    .search-bar input {
+      flex: 1; padding: 8px 12px; border: 1px solid #ccc;
+      border-radius: 6px; font-size: 14px;
+    }
+    .search-bar button {
+      padding: 8px 18px; border: none; background: #2563eb;
+      color: #fff; border-radius: 6px; font-size: 14px; cursor: pointer;
+    }
+
+    table { width: 100%; border-collapse: collapse; background: #fff;
+      border-radius: 10px; overflow: hidden; font-size: 13px; }
+    th { background: #f1f5f9; padding: 10px 12px; text-align: left;
+      font-weight: 500; color: #555; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Badges de estado */
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 500;
+    }
+    .badge-puntual   { background: #dcfce7; color: #15803d; }
+    .badge-permitido { background: #fef9c3; color: #854d0e; }
+    .badge-retardo   { background: #fee2e2; color: #991b1b; }
+    .badge-ausencia  { background: #f1f5f9; color: #475569; }
+    .badge-sin       { background: #f1f5f9; color: #94a3b8; }
+    .badge-justif    { background: #dbeafe; color: #1d4ed8; }
+
+    select, textarea {
+      font-size: 12px; padding: 4px 6px; border: 1px solid #ccc;
+      border-radius: 5px; background: #fff;
+    }
+    textarea { width: 100%; resize: vertical; min-height: 40px; }
+
+    .btn-guardar {
+      padding: 5px 12px; background: #2563eb; color: #fff;
+      border: none; border-radius: 5px; font-size: 12px; cursor: pointer;
+    }
+    .btn-guardar:hover { background: #1d4ed8; }
+
+    .saved-ok { color: #15803d; font-size: 11px; }
   </style>
 </head>
 <body>
 
-  <!-- Panel de control -->
-  <div class="panel">
-    <h3>Control asistencia de usuarios</h3>
-    <input id="nombre" type="text" placeholder="Nombre" />
-    <button onclick="buscar()">Botón de buscar</button>
+<!-- ──────────── PANTALLA DE LOGIN ──────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <h2>Acceso Administrador</h2>
+    <input id="inp-usuario"  type="text"     placeholder="Usuario" />
+    <input id="inp-password" type="password" placeholder="Contraseña" />
+    <button onclick="login()">Entrar</button>
+    <p class="error-msg" id="login-error"></p>
+  </div>
+</div>
+
+<!-- ──────────── PANEL ADMINISTRADOR ──────────── -->
+<div id="admin-panel">
+  <div class="top-bar">
+    <h1>Gestión de Retardos</h1>
+    <button onclick="cerrarSesion()">Cerrar sesión</button>
   </div>
 
-  <!-- Tabla de resultados -->
-  <div class="panel">
-    <h3>Asistencia de usuarios</h3>
-    <table>
-      <thead>
-        <tr><th>Id</th><th>Nombre</th><th>Retardo (Si/No)</th></tr>
-      </thead>
-      <tbody id="tabla-body">
-        <tr><td colspan="3">Sin resultados</td></tr>
-      </tbody>
-    </table>
+  <div class="search-bar">
+    <input id="buscar-nombre" type="text" placeholder="Buscar por nombre..." />
+    <button onclick="cargarDatos()">Buscar</button>
+    <button onclick="document.getElementById('buscar-nombre').value=''; cargarDatos()"
+      style="background:#64748b">Ver todos</button>
   </div>
 
-  <script>
-    async function buscar() {
-      const nombre = document.getElementById('nombre').value.trim();
-      if (!nombre) return alert('Escribe un nombre');
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nombre</th>
+        <th>Fecha</th>
+        <th>Retardo</th>
+        <th>Tipo</th>
+        <th>Justificado</th>
+        <th>Motivo</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-body">
+      <tr><td colspan="8" style="text-align:center;color:#aaa;padding:24px">Cargando...</td></tr>
+    </tbody>
+  </table>
+</div>
 
-      // Solo llama a la API — no sabe nada de la BD ni del servidor
-      const res  = await fetch(`/api/asistencia/buscar?nombre=${encodeURIComponent(nombre)}`);
-      const data = await res.json();
+<script>
+let adminId   = null;
+let tiposData = [];
 
-      const tbody = document.getElementById('tabla-body');
-      if (!data.length) {
-        tbody.innerHTML = '<tr><td colspan="3">Sin resultados</td></tr>';
-        return;
-      }
+// ── LOGIN ──────────────────────────────────────────────────
+async function login() {
+  const usuario  = document.getElementById('inp-usuario').value.trim();
+  const password = document.getElementById('inp-password').value;
 
-      tbody.innerHTML = data.map(r => `
-        <tr>
-          <td>${r.id}</td>
-          <td>${r.nombre}</td>
-          <td>${r.retardo ? 'Sí' : 'No'}</td>
-        </tr>`).join('');
-    }
-  </script>
+  const res  = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario, password })
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    document.getElementById('login-error').textContent = data.error;
+    return;
+  }
+
+  adminId = data.adminId;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-panel').style.display  = 'block';
+  await cargarTipos();
+  await cargarDatos();
+}
+
+function cerrarSesion() {
+  adminId = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('admin-panel').style.display  = 'none';
+  document.getElementById('inp-password').value = '';
+}
+
+// ── CARGA CATÁLOGO DE TIPOS ────────────────────────────────
+async function cargarTipos() {
+  const res  = await fetch('/api/admin/tipos');
+  tiposData  = await res.json();
+}
+
+// ── CARGA Y RENDERIZA LA TABLA ─────────────────────────────
+async function cargarDatos() {
+  const nombre = document.getElementById('buscar-nombre').value.trim();
+  const url    = nombre
+    ? `/api/admin/asistencia?nombre=${encodeURIComponent(nombre)}`
+    : '/api/admin/asistencia';
+
+  const res  = await fetch(url);
+  const data = await res.json();
+  renderTabla(data);
+}
+
+function renderTabla(data) {
+  if (!data.length) {
+    document.getElementById('tabla-body').innerHTML =
+      '<tr><td colspan="8" style="text-align:center;color:#aaa;padding:24px">Sin resultados</td></tr>';
+    return;
+  }
+
+  document.getElementById('tabla-body').innerHTML = data.map(r => `
+    <tr id="row-${r.asistencia_id}">
+      <td>${r.asistencia_id}</td>
+      <td>${r.nombre}</td>
+      <td>${r.fecha}</td>
+      <td>${r.retardo ? '<span class="badge badge-retardo">Sí</span>'
+                       : '<span class="badge badge-puntual">No</span>'}</td>
+      <td>
+        <select id="tipo-${r.asistencia_id}" onchange="actualizarBadge(${r.asistencia_id})">
+          ${tiposData.map(t => `
+            <option value="${t.id}" ${r.tipo === t.codigo ? 'selected' : ''}>
+              ${t.descripcion}
+            </option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <select id="just-${r.asistencia_id}">
+          <option value="0" ${!r.justificado ? 'selected' : ''}>No justificado</option>
+          <option value="1" ${ r.justificado ? 'selected' : ''}>Justificado</option>
+        </select>
+      </td>
+      <td>
+        <textarea id="motivo-${r.asistencia_id}"
+          placeholder="Escribe el motivo...">${r.motivo}</textarea>
+      </td>
+      <td>
+        <button class="btn-guardar"
+          onclick="guardar(${r.asistencia_id})">Guardar</button>
+        <span class="saved-ok" id="ok-${r.asistencia_id}" style="display:none">✓</span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ── GUARDAR CLASIFICACIÓN ──────────────────────────────────
+async function guardar(asistencia_id) {
+  const tipo_retardo_id = document.getElementById(`tipo-${asistencia_id}`).value;
+  const justificado     = document.getElementById(`just-${asistencia_id}`).value;
+  const motivo          = document.getElementById(`motivo-${asistencia_id}`).value;
+
+  const res = await fetch('/api/admin/clasificar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ asistencia_id, tipo_retardo_id, justificado, motivo, admin_id: adminId })
+  });
+
+  if (res.ok) {
+    const ok = document.getElementById(`ok-${asistencia_id}`);
+    ok.style.display = 'inline';
+    setTimeout(() => ok.style.display = 'none', 2000);
+  }
+}
+</script>
 </body>
 </html>
