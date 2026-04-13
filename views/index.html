@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Control de Asistencia</title>
+  <style>
+    body { font-family: sans-serif; display: flex; gap: 24px; padding: 32px; }
+    .panel { border: 1px solid #ccc; padding: 20px; border-radius: 8px; min-width: 200px; }
+    table  { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+    th     { background: #f5f5f5; }
+    button { margin-top: 8px; padding: 8px 16px; cursor: pointer; }
+    input  { width: 100%; padding: 6px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+
+  <!-- Panel de control -->
+  <div class="panel">
+    <h3>Control asistencia de usuarios</h3>
+    <input id="nombre" type="text" placeholder="Nombre" />
+    <button onclick="buscar()">Botón de buscar</button>
+  </div>
+
+  <!-- Tabla de resultados -->
+  <div class="panel">
+    <h3>Asistencia de usuarios</h3>
+    <table>
+      <thead>
+        <tr><th>Id</th><th>Nombre</th><th>Retardo (Si/No)</th></tr>
+      </thead>
+      <tbody id="tabla-body">
+        <tr><td colspan="3">Sin resultados</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    async function buscar() {
+      const nombre = document.getElementById('nombre').value.trim();
+      if (!nombre) return alert('Escribe un nombre');
+
+      // Solo llama a la API — no sabe nada de la BD ni del servidor
+      const res  = await fetch(`/api/asistencia/buscar?nombre=${encodeURIComponent(nombre)}`);
+      const data = await res.json();
+
+      const tbody = document.getElementById('tabla-body');
+      if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="3">Sin resultados</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map(r => `
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.nombre}</td>
+          <td>${r.retardo ? 'Sí' : 'No'}</td>
+        </tr>`).join('');
+    }
+  </script>
+</body>
+</html>
